@@ -23,7 +23,7 @@ COPY --from=base ./node_modules ./node_modules
 COPY --from=base /dist /dist
 COPY package.json ./
 
-# Expose port 5000
-EXPOSE 5000
+# Expose port 5004
+EXPOSE 5004
 
 CMD yarn run start

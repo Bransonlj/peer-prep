@@ -2,7 +2,7 @@ import { Kafka, KafkaConfig } from "kafkajs";
 
 const devKafkaConfig: KafkaConfig = {
   clientId: "my-app",
-  brokers: ["broker:29092"],
+  brokers: [process.env.KAFKA_BROKER_URL ?? 'localhost:29092'],
 };
 
 const prodKafkaConfig: KafkaConfig = {

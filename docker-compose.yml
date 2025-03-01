@@ -1,0 +1,190 @@
+services:
+  user:
+    container_name: peer-prep-user-service
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile.staging
+    ports:
+      - "5001:5001"
+    environment:
+      SERVER_PORT: 5001
+      DATABASE_URL: postgresql://user:password@postgres-user-service:5432/user-service
+      KAFKA_BROKER_URL: kafka:9092
+    depends_on:
+      postgres-user-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  postgres-user-service:
+    image: "postgres:latest"
+    container_name: peer-prep-postgres-user-service
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: user-service
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d user-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  matching:
+    container_name: peer-prep-matching-service
+    build:
+      context: ./backend/matching-service
+      dockerfile: Dockerfile.staging
+    ports:
+      - "5002:5002"
+    environment:
+      SERVER_PORT: 5002
+      DATABASE_URL: postgresql://user:password@postgres-matching-service:5432/matching-service
+      KAFKA_BROKER_URL: kafka:9092
+    depends_on:
+      postgres-matching-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  postgres-matching-service:
+    image: "postgres:latest"
+    container_name: peer-prep-postgres-matching-service
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: matching-service
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d matching-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      
+  question:
+    container_name: peer-prep-question-service
+    build:
+      context: ./backend/question-service
+      dockerfile: Dockerfile.staging
+    ports:
+      - "5003:5003"
+    environment:
+      SERVER_PORT: 5003
+      DATABASE_URL: postgresql://user:password@postgres-question-service:5432/question-service
+      KAFKA_BROKER_URL: kafka:9092
+    depends_on:
+      postgres-question-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  postgres-question-service:
+    image: "postgres:latest"
+    container_name: peer-prep-postgres-question-service
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: question-service
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d question-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  history:
+    container_name: peer-prep-history-service
+    build:
+      context: ./backend/history-service
+      dockerfile: Dockerfile.staging
+    ports:
+      - "5007:5007"
+    environment:
+      SERVER_PORT: 5007
+      DATABASE_URL: postgresql://user:password@postgres-history-service:5432/history-service
+      KAFKA_BROKER_URL: kafka:9092
+    depends_on:
+      postgres-history-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  postgres-history-service:
+    image: "postgres:latest"
+    container_name: peer-prep-postgres-history-service
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: history-service
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d history-service"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  collaboration:
+    container_name: peer-prep-collaboration-service
+    build:
+      context: ./backend/collaboration-service
+      dockerfile: Dockerfile.staging
+    ports:
+      - "5004:5004"
+    environment:
+      SERVER_PORT: 5004
+      KAFKA_BROKER_URL: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  chat:
+    container_name: chat-service
+    build:
+      context: ./backend/chat-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5005:5005"
+    environment:
+      SERVER_PORT: 5005
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.staging
+    ports:
+      - "8080:8080"
+    environment:
+      VITE_PORT: 8080
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
